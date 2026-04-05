@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Find The Spy</title>
+    <style>
+        :root {
+            --red-glow: rgba(255, 0, 0, 0.7);
+            --dark-bg: #000000;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--dark-bg);
+            color: white;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        .active { display: flex; }
+
+        /* Background Graphics */
+        #menu-screen { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('assets/main_spy.png'); }
+        #setup-screen { background: radial-gradient(circle at center, #300000 0%, #000 100%); }
+        #reveal-screen { background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('assets/pointing_shadows.png'); }
+        #game-screen { background: black; }
+
+        h1 { font-size: 2.5rem; text-shadow: 0 0 15px red; margin-bottom: 30px; text-transform: uppercase; }
+        h2 { font-size: 2rem; margin-bottom: 20px; color: #ff4d4d; }
+
+        .btn {
+            background: rgba(40, 40, 40, 0.9);
+            border: 1px solid #555;
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            width: 280px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: inherit;
+        }
+
+        .btn:active { background: #600; border-color: red; box-shadow: 0 0 10px red; }
+
+        /* Sliders Styling */
+        .setup-group { width: 85%; margin: 12px 0; text-align: left; }
+        .setup-group label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
+        input[type=range] { width: 100%; height: 10px; border-radius: 5px; accent-color: red; cursor: pointer; }
+
+        /* Reveal Mechanic */
+        #swipe-zone {
+            width: 100%; height: 50vh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+
+        #secret-box {
+            font-size: 2.2rem;
+            background: rgba(255, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid red;
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s;
+            transform: translateY(100px);
+        }
+
+        .swiped-up #secret-box { opacity: 1; transform: translateY(0); }
+        .swiped-up #swipe-prompt { opacity: 0; }
+
+        #timer-display { font-size: 6rem; font-weight: bold; margin-bottom: 20px; text-shadow: 0 0 20px red; }
+
+        /* Modal for How to Play */
+        #how-to-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100; padding: 40px; box-sizing: border-box;
+            overflow-y: auto; text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="game-music" loop><source src="spy-music.mp3" type="audio/mpeg"></audio>
+
+    <div id="menu-screen" class="screen active">
+        <h1>FIND THE SPY</h1>
+        <button class="btn" onclick="showScreen('setup-screen')">NEW GAME</button>
+        <button class="btn" onclick="toggleModal(true)">HOW TO PLAY</button>
+        <button class="btn" id="sound-btn" onclick="toggleSound()">SOUND: ON</button>
+    </div>
+
+    <div id="how-to-modal" onclick="toggleModal(false)">
+        <h2>RULES</h2>
+        <p>1. Pass the phone. Each player swipes up to see the word, except the Spy.</p>
+        <p>2. Ask vague questions or give one-word clues about the secret word.</p>
+        <p>3. The Spy must blend in and guess the word from clues.</p>
+        <p>4. Discuss and vote. Find the Spy before time runs out!</p>
+        <p style="color:red; text-align:center;">TAP ANYWHERE TO CLOSE</p>
+    </div>
+
+    <div id="setup-screen" class="screen">
+        <h2>GAME SETUP</h2>
+        <div class="setup-group">
+            <label>Players: <span id="p-val">5</span></label>
+            <input type="range" min="3" max="20" value="5" id="players" oninput="updateVal('p-val', this.value)">
+        </div>
+        <div class="setup-group">
+            <label>Spies: <span id="s-val">1</span></label>
+            <input type="range" min="1" max="7" value="1" id="spies" oninput="updateVal('s-val', this.value)">
+        </div>
+        <div class="setup-group">
+            <label>Duration: <span id="d-val">5</span> min</label>
+            <input type="range" min="1" max="15" value="5" id="duration" oninput="updateVal('d-val', this.value)">
+        </div>
+        <div class="setup-group">
+            <label>Category</label>
+            <select id="category" class="btn" style="width:100%; height:50px;">
+                <option value="places.csv">Places</option>
+                <option value="jobs.csv">Jobs</option>
+                <option value="events.csv">Events</option>
+            </select>
+        </div>
+        <button class="btn" style="background:#800; border-color: red;" onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="reveal-screen" class="screen">
+        <h2 id="player-title">PLAYER 1</h2>
+        <div id="swipe-zone" 
+             onmousedown="handleSwipe(true)" onmouseup="handleSwipe(false)"
+             ontouchstart="handleSwipe(true)" ontouchend="handleSwipe(false)">
+            <p id="swipe-prompt" style="transition:0.3s;">↑ SWIPE UP TO REVEAL ↑</p>
+            <div id="secret-box">SECRET WORD</div>
+        </div>
+        <button id="next-btn" class="btn" style="visibility:hidden; background:white; color:black;" onclick="nextPlayer()">NEXT PLAYER</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div id="timer-display">05:00</div>
+        <button id="start-timer-btn" class="btn" onclick="runTimer()">PRESS TO START</button>
+        <button id="reveal-spy-btn" class="btn" style="display:none; background:red;" onclick="showFinalReveal()">REVEAL THE SPY</button>
+    </div>
+
+    <script>
+        let gameState = {
+            players: 0,
+            spyCount: 0,
+            spies: [],
+            currentPlayer: 1,
+            secretWord: "",
+            duration: 0,
+            sound: true,
+            timer: null
+        };
+
+        const music = document.getElementById('game-music');
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function updateVal(id, val) { 
+            document.getElementById(id).innerText = val;
+            // Ensure spies doesn't exceed players-1
+            if(id === 'p-val') {
+                const sInput = document.getElementById('spies');
+                sInput.max = val - 1;
+                if(parseInt(sInput.value) >= val) {
+                    sInput.value = val - 1;
+                    updateVal('s-val', val - 1);
+                }
+            }
+        }
+
+        function toggleModal(show) { document.getElementById('how-to-modal').style.display = show ? 'block' : 'none'; }
+
+        function toggleSound() {
+            gameState.sound = !gameState.sound;
+            document.getElementById('sound-btn').innerText = `SOUND: ${gameState.sound ? 'ON' : 'OFF'}`;
+            if(!gameState.sound) music.pause();
+        }
+
+        async function startGame() {
+            gameState.players = parseInt(document.getElementById('players').value);
+            gameState.spyCount = parseInt(document.getElementById('spies').value);
+            gameState.duration = parseInt(document.getElementById('duration').value) * 60;
+            gameState.currentPlayer = 1;
+            gameState.spies = [];
+
+            // Randomize Spy assignment
+            while(gameState.spies.length < gameState.spyCount) {
+                let r = Math.floor(Math.random() * gameState.players) + 1;
+                if(!gameState.spies.includes(r)) gameState.spies.push(r);
+            }
+
+            // Load Word from CSV
+            const csvFile = document.getElementById('category').value;
+            try {
+                const response = await fetch(`topics/${csvFile}`);
+                const data = await response.text();
+                const lines = data.split('\n').filter(l => l.trim() !== "");
+                gameState.secretWord = lines[Math.floor(Math.random() * lines.length)];
+            } catch (err) {
+                gameState.secretWord = "OFFICE"; // Fallback if file missing
+            }
+
+            if(gameState.sound) { music.currentTime = 0; music.play(); }
+            
+            updateRevealUI();
+            showScreen('reveal-screen');
+        }
+
+        function handleSwipe(isHolding) {
+            const screen = document.getElementById('reveal-screen');
+            if(isHolding) {
+                screen.classList.add('swiped-up');
+                document.getElementById('next-btn').style.visibility = 'visible';
+            } else {
+                screen.classList.remove('swiped-up');
+            }
+        }
+
+        function updateRevealUI() {
+            document.getElementById('player-title').innerText = `PLAYER ${gameState.currentPlayer}`;
+            const box = document.getElementById('secret-box');
+            if(gameState.spies.includes(gameState.currentPlayer)) {
+                box.innerText = "YOU ARE THE SPY";
+                box.style.color = "red";
+            } else {
+                box.innerText = `WORD: ${gameState.secretWord}`;
+                box.style.color = "white";
+            }
+            document.getElementById('next-btn').style.visibility = 'hidden';
+        }
+
+        function nextPlayer() {
+            if(gameState.currentPlayer < gameState.players) {
+                gameState.currentPlayer++;
+                updateRevealUI();
+            } else {
+                showScreen('game-screen');
+                resetTimerUI();
+            }
+        }
+
+        function resetTimerUI() {
+            let m = Math.floor(gameState.duration / 60);
+            let s = gameState.duration % 60;
+            document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+            document.getElementById('start-timer-btn').style.display = 'block';
+            document.getElementById('reveal-spy-btn').style.display = 'none';
+        }
+
+        function runTimer() {
+            document.getElementById('start-timer-btn').style.display = 'none';
+            let timeLeft = gameState.duration;
+            gameState.timer = setInterval(() => {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                
+                if(timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    document.getElementById('timer-display').innerText = "TIME UP!";
+                    document.getElementById('reveal-spy-btn').style.display = 'block';
+                }
+            }, 1000);
+        }
+
+        function showFinalReveal() {
+            music.pause();
+            const spyList = gameState.spies.sort((a,b)=>a-b).join(", ");
+            alert(`THE SPY WAS PLAYER: ${spyList}`);
+            showScreen('menu-screen');
+        }
+    </script>
+</body>
+</html>
