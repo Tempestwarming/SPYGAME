@@ -37,14 +37,14 @@
 
         .active { display: flex; }
 
-        /* Background Graphics - Make sure files are in the main folder */
+        /* Background Graphics - Files must be in main folder */
         #menu-screen { background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('main_spy.png'); }
         #setup-screen { background: radial-gradient(circle at center, #300000 0%, #000 100%); }
         #reveal-screen { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('pointing_shadows.png'); }
         #game-screen { background: black; }
 
         h1 { font-size: 2.5rem; text-shadow: 0 0 15px red; margin-bottom: 30px; text-transform: uppercase; }
-        h2 { font-size: 2rem; margin-bottom: 20px; color: #ff4d4d; }
+        h2 { font-size: 2rem; margin-bottom: 10px; color: #ff4d4d; }
 
         .btn {
             background: rgba(40, 40, 40, 0.9);
@@ -62,8 +62,8 @@
 
         .btn:active { background: #600; border-color: red; box-shadow: 0 0 10px red; }
 
-        .setup-group { width: 85%; margin: 12px 0; text-align: left; }
-        .setup-group label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
+        .setup-group { width: 85%; margin: 10px 0; text-align: left; }
+        .setup-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9rem; }
         input[type=range] { width: 100%; height: 10px; border-radius: 5px; accent-color: red; cursor: pointer; }
 
         #swipe-zone {
@@ -80,8 +80,8 @@
             border-radius: 10px;
             border: 2px solid red;
             opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s;
-            transform: translateY(100px);
+            transition: transform 0.3s ease-out, opacity 0.3s;
+            transform: translateY(50px);
             pointer-events: none;
         }
 
@@ -92,8 +92,8 @@
 
         #how-to-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100; padding: 40px; box-sizing: border-box;
-            overflow-y: auto; text-align: left;
+            background: rgba(0,0,0,0.95); z-index: 100; padding: 40px; box-sizing: border-box;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -112,25 +112,24 @@
 
     <div id="how-to-modal" onclick="toggleModal(false)">
         <h2>RULES</h2>
-        <p>1. Pass the phone. Each player swipes up to see the word, except the Spy.</p>
-        <p>2. Ask vague questions or give one-word clues about the secret word.</p>
-        <p>3. The Spy must blend in and guess the word from clues.</p>
-        <p>4. Discuss and vote. Find the Spy before time runs out!</p>
-        <p style="color:red; text-align:center;">TAP ANYWHERE TO CLOSE</p>
+        <p>1. Pass the phone. Swipe up to see your role.</p>
+        <p>2. The Spy doesn't know the word.</p>
+        <p>3. Ask questions to find the Spy.</p>
+        <p style="color:red;">TAP TO CLOSE</p>
     </div>
 
     <div id="setup-screen" class="screen">
-        <h2>GAME SETUP</h2>
+        <h2>SETUP</h2>
         <div class="setup-group">
             <label>Players: <span id="p-val">5</span></label>
             <input type="range" min="3" max="20" value="5" id="players" oninput="updateVal('p-val', this.value)">
         </div>
         <div class="setup-group">
             <label>Spies: <span id="s-val">1</span></label>
-            <input type="range" min="1" max="7" value="1" id="spies" oninput="updateVal('s-val', this.value)">
+            <input type="range" min="1" max="5" value="1" id="spies" oninput="updateVal('s-val', this.value)">
         </div>
         <div class="setup-group">
-            <label>Duration: <span id="d-val">5</span> min</label>
+            <label>Time: <span id="d-val">5</span> min</label>
             <input type="range" min="1" max="15" value="5" id="duration" oninput="updateVal('d-val', this.value)">
         </div>
         <div class="setup-group">
@@ -140,7 +139,7 @@
                 <option value="jobs.csv">Jobs</option>
             </select>
         </div>
-        <button class="btn" style="background:#800; border-color: red;" onclick="startGame()">START GAME</button>
+        <button class="btn" style="background:#800;" onclick="startGame()">START GAME</button>
     </div>
 
     <div id="reveal-screen" class="screen">
@@ -148,30 +147,28 @@
         <div id="swipe-zone" 
              onmousedown="handleSwipe(true)" onmouseup="handleSwipe(false)"
              ontouchstart="handleSwipe(true)" ontouchend="handleSwipe(false)">
-            <p id="swipe-prompt" style="transition:0.3s;">↑ SWIPE UP TO REVEAL ↑</p>
-            <div id="secret-box">SECRET WORD</div>
+            <p id="swipe-prompt">↑ HOLD TO REVEAL ↑</p>
+            <div id="secret-box">WORD</div>
         </div>
-        <button id="next-btn" class="btn" style="display:none; background:white; color:black;" onclick="nextPlayer()">NEXT PLAYER</button>
+        <button id="next-btn" class="btn" style="visibility:hidden; background:white; color:black;" onclick="nextPlayer()">NEXT PLAYER</button>
     </div>
 
     <div id="game-screen" class="screen">
-        <div id="timer-display">05:00</div>
-        <button id="start-timer-btn" class="btn" onclick="runTimer()">PRESS TO START</button>
-        <button id="stop-timer-btn" class="btn" style="display:none; background:#444;" onclick="stopTimerEarly()">STOP TIMER</button>
+        <div id="timer-display">00:00</div>
+        <button id="start-timer-btn" class="btn" onclick="runTimer()">START TIMER</button>
+        <button id="stop-timer-btn" class="btn" style="display:none; background:#444;" onclick="endTimer()">STOP & REVEAL</button>
         <button id="reveal-spy-btn" class="btn" style="display:none; background:red;" onclick="showFinalReveal()">REVEAL THE SPY</button>
     </div>
 
     <script>
         let gameState = {
             players: 0,
-            spyCount: 0,
             spies: [],
             currentPlayer: 1,
             secretWord: "",
             duration: 0,
             sound: true,
-            timer: null,
-            timeLeft: 0
+            timer: null
         };
 
         const music = document.getElementById('game-music');
@@ -183,14 +180,7 @@
 
         function updateVal(id, val) { 
             document.getElementById(id).innerText = val;
-            if(id === 'p-val') {
-                const sInput = document.getElementById('spies');
-                sInput.max = val - 1;
-                if(parseInt(sInput.value) >= val) {
-                    sInput.value = val - 1;
-                    updateVal('s-val', val - 1);
-                }
-            }
+            if(id === 'p-val') document.getElementById('spies').max = val - 1;
         }
 
         function toggleModal(show) { document.getElementById('how-to-modal').style.display = show ? 'block' : 'none'; }
@@ -198,39 +188,39 @@
         function toggleSound() {
             gameState.sound = !gameState.sound;
             document.getElementById('sound-btn').innerText = `SOUND: ${gameState.sound ? 'ON' : 'OFF'}`;
-            if(!gameState.sound) {
-                music.pause();
-            } else if (document.getElementById('reveal-screen').classList.contains('active') || document.getElementById('game-screen').classList.contains('active')) {
-                music.play().catch(()=>{});
-            }
+            if(!gameState.sound) music.pause();
         }
 
         async function startGame() {
             gameState.players = parseInt(document.getElementById('players').value);
-            gameState.spyCount = parseInt(document.getElementById('spies').value);
+            const spyCount = parseInt(document.getElementById('spies').value);
             gameState.duration = parseInt(document.getElementById('duration').value) * 60;
             gameState.currentPlayer = 1;
             gameState.spies = [];
 
-            while(gameState.spies.length < gameState.spyCount) {
+            // Randomize Spies
+            while(gameState.spies.length < spyCount) {
                 let r = Math.floor(Math.random() * gameState.players) + 1;
                 if(!gameState.spies.includes(r)) gameState.spies.push(r);
             }
 
+            // Load CSV and FIX words (remove hidden characters)
             const csvFile = document.getElementById('category').value;
             try {
-                const response = await fetch(`${csvFile}?t=${Date.now()}`);
+                const response = await fetch(csvFile + '?t=' + Date.now());
                 const data = await response.text();
-                const lines = data.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
+                // This regex splits correctly regardless of Windows or Mac line endings
+                const lines = data.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
                 gameState.secretWord = lines[Math.floor(Math.random() * lines.length)];
             } catch (err) {
                 gameState.secretWord = "OFFICE"; 
             }
 
-            if(gameState.sound) { 
-                music.currentTime = 0; 
+            // Music Force Play (triggered by button click)
+            if(gameState.sound) {
                 music.volume = 0.5;
-                music.play().catch(()=>{}); 
+                music.currentTime = 0;
+                music.play().catch(e => console.log("Audio blocked"));
             }
             
             updateRevealUI();
@@ -241,7 +231,7 @@
             const screen = document.getElementById('reveal-screen');
             if(isHolding) {
                 screen.classList.add('swiped-up');
-                document.getElementById('next-btn').style.display = 'block';
+                document.getElementById('next-btn').style.visibility = 'visible';
             } else {
                 screen.classList.remove('swiped-up');
             }
@@ -254,11 +244,10 @@
                 box.innerText = "YOU ARE THE SPY";
                 box.style.color = "red";
             } else {
-                box.innerText = `WORD: ${gameState.secretWord}`;
+                box.innerText = gameState.secretWord;
                 box.style.color = "white";
             }
-            // Hide next button until they swipe this time
-            document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('next-btn').style.visibility = 'hidden';
         }
 
         function nextPlayer() {
@@ -267,55 +256,37 @@
                 updateRevealUI();
             } else {
                 showScreen('game-screen');
-                resetTimerUI();
+                updateTimerDisplay(gameState.duration);
             }
         }
 
-        function resetTimerUI() {
-            let m = Math.floor(gameState.duration / 60);
-            let s = gameState.duration % 60;
-            document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
-            document.getElementById('start-timer-btn').style.display = 'block';
-            document.getElementById('stop-timer-btn').style.display = 'none';
-            document.getElementById('reveal-spy-btn').style.display = 'none';
-        }
-
-        function runTimer() {
-            document.getElementById('start-timer-btn').style.display = 'none';
-            document.getElementById('stop-timer-btn').style.display = 'block';
-            gameState.timeLeft = gameState.duration;
-            
-            gameState.timer = setInterval(() => {
-                gameState.timeLeft--;
-                updateDisplay(gameState.timeLeft);
-                
-                if(gameState.timeLeft <= 0) {
-                    endTimer();
-                }
-            }, 1000);
-        }
-
-        function updateDisplay(time) {
+        function updateTimerDisplay(time) {
             let m = Math.floor(time / 60);
             let s = time % 60;
             document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
         }
 
-        function stopTimerEarly() {
-            endTimer();
+        function runTimer() {
+            document.getElementById('start-timer-btn').style.display = 'none';
+            document.getElementById('stop-timer-btn').style.display = 'block';
+            let timeLeft = gameState.duration;
+            gameState.timer = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay(timeLeft);
+                if(timeLeft <= 0) endTimer();
+            }, 1000);
         }
 
         function endTimer() {
             clearInterval(gameState.timer);
-            document.getElementById('timer-display').innerText = "TIME UP!";
+            document.getElementById('timer-display').innerText = "VOTE!";
             document.getElementById('stop-timer-btn').style.display = 'none';
             document.getElementById('reveal-spy-btn').style.display = 'block';
         }
 
         function showFinalReveal() {
             music.pause();
-            const spyList = gameState.spies.sort((a,b)=>a-b).join(", ");
-            alert(`THE SPY WAS PLAYER: ${spyList}`);
+            alert(`THE SPY WAS PLAYER: ${gameState.spies.sort().join(", ")}`);
             location.reload();
         }
     </script>
