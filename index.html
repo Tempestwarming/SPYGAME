@@ -37,10 +37,10 @@
 
         .active { display: flex; }
 
-        /* Background Graphics - Make sure folder is 'assets' and files are '.png' */
-        #menu-screen { background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('assets/main_spy.png'); }
+        /* Background Graphics - Make sure files are in the main folder */
+        #menu-screen { background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('main_spy.png'); }
         #setup-screen { background: radial-gradient(circle at center, #300000 0%, #000 100%); }
-        #reveal-screen { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('assets/pointing_shadows.png'); }
+        #reveal-screen { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('pointing_shadows.png'); }
         #game-screen { background: black; }
 
         h1 { font-size: 2.5rem; text-shadow: 0 0 15px red; margin-bottom: 30px; text-transform: uppercase; }
@@ -82,6 +82,7 @@
             opacity: 0;
             transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s;
             transform: translateY(100px);
+            pointer-events: none;
         }
 
         .swiped-up #secret-box { opacity: 1; transform: translateY(0); }
@@ -98,7 +99,9 @@
 </head>
 <body>
 
-    <audio id="game-music" loop><source src="spy-music.mp3" type="audio/mpeg"></audio>
+    <audio id="game-music" loop preload="auto">
+        <source src="spy-music.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="menu-screen" class="screen active">
         <h1>FIND THE SPY</h1>
@@ -148,12 +151,13 @@
             <p id="swipe-prompt" style="transition:0.3s;">↑ SWIPE UP TO REVEAL ↑</p>
             <div id="secret-box">SECRET WORD</div>
         </div>
-        <button id="next-btn" class="btn" style="visibility:hidden; background:white; color:black;" onclick="nextPlayer()">NEXT PLAYER</button>
+        <button id="next-btn" class="btn" style="display:none; background:white; color:black;" onclick="nextPlayer()">NEXT PLAYER</button>
     </div>
 
     <div id="game-screen" class="screen">
         <div id="timer-display">05:00</div>
         <button id="start-timer-btn" class="btn" onclick="runTimer()">PRESS TO START</button>
+        <button id="stop-timer-btn" class="btn" style="display:none; background:#444;" onclick="stopTimerEarly()">STOP TIMER</button>
         <button id="reveal-spy-btn" class="btn" style="display:none; background:red;" onclick="showFinalReveal()">REVEAL THE SPY</button>
     </div>
 
@@ -166,7 +170,8 @@
             secretWord: "",
             duration: 0,
             sound: true,
-            timer: null
+            timer: null,
+            timeLeft: 0
         };
 
         const music = document.getElementById('game-music');
@@ -193,7 +198,11 @@
         function toggleSound() {
             gameState.sound = !gameState.sound;
             document.getElementById('sound-btn').innerText = `SOUND: ${gameState.sound ? 'ON' : 'OFF'}`;
-            if(!gameState.sound) music.pause();
+            if(!gameState.sound) {
+                music.pause();
+            } else if (document.getElementById('reveal-screen').classList.contains('active') || document.getElementById('game-screen').classList.contains('active')) {
+                music.play().catch(()=>{});
+            }
         }
 
         async function startGame() {
@@ -210,18 +219,19 @@
 
             const csvFile = document.getElementById('category').value;
             try {
-                // IMPORTANT: csv files must be in a folder named 'topics'
-                const response = await fetch(`topics/${csvFile}`);
+                const response = await fetch(`${csvFile}?t=${Date.now()}`);
                 const data = await response.text();
-                // FIX: map(l => l.trim()) removes the \r hidden characters
-                const lines = data.split('\n').map(l => l.trim()).filter(l => l !== "");
+                const lines = data.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
                 gameState.secretWord = lines[Math.floor(Math.random() * lines.length)];
             } catch (err) {
-                console.error("CSV loading error:", err);
                 gameState.secretWord = "OFFICE"; 
             }
 
-            if(gameState.sound) { music.currentTime = 0; music.play().catch(()=>{}); }
+            if(gameState.sound) { 
+                music.currentTime = 0; 
+                music.volume = 0.5;
+                music.play().catch(()=>{}); 
+            }
             
             updateRevealUI();
             showScreen('reveal-screen');
@@ -231,7 +241,7 @@
             const screen = document.getElementById('reveal-screen');
             if(isHolding) {
                 screen.classList.add('swiped-up');
-                document.getElementById('next-btn').style.visibility = 'visible';
+                document.getElementById('next-btn').style.display = 'block';
             } else {
                 screen.classList.remove('swiped-up');
             }
@@ -247,7 +257,8 @@
                 box.innerText = `WORD: ${gameState.secretWord}`;
                 box.style.color = "white";
             }
-            document.getElementById('next-btn').style.visibility = 'hidden';
+            // Hide next button until they swipe this time
+            document.getElementById('next-btn').style.display = 'none';
         }
 
         function nextPlayer() {
@@ -265,24 +276,40 @@
             let s = gameState.duration % 60;
             document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
             document.getElementById('start-timer-btn').style.display = 'block';
+            document.getElementById('stop-timer-btn').style.display = 'none';
             document.getElementById('reveal-spy-btn').style.display = 'none';
         }
 
         function runTimer() {
             document.getElementById('start-timer-btn').style.display = 'none';
-            let timeLeft = gameState.duration;
+            document.getElementById('stop-timer-btn').style.display = 'block';
+            gameState.timeLeft = gameState.duration;
+            
             gameState.timer = setInterval(() => {
-                timeLeft--;
-                let m = Math.floor(timeLeft / 60);
-                let s = timeLeft % 60;
-                document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                gameState.timeLeft--;
+                updateDisplay(gameState.timeLeft);
                 
-                if(timeLeft <= 0) {
-                    clearInterval(gameState.timer);
-                    document.getElementById('timer-display').innerText = "TIME UP!";
-                    document.getElementById('reveal-spy-btn').style.display = 'block';
+                if(gameState.timeLeft <= 0) {
+                    endTimer();
                 }
             }, 1000);
+        }
+
+        function updateDisplay(time) {
+            let m = Math.floor(time / 60);
+            let s = time % 60;
+            document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+        }
+
+        function stopTimerEarly() {
+            endTimer();
+        }
+
+        function endTimer() {
+            clearInterval(gameState.timer);
+            document.getElementById('timer-display').innerText = "TIME UP!";
+            document.getElementById('stop-timer-btn').style.display = 'none';
+            document.getElementById('reveal-spy-btn').style.display = 'block';
         }
 
         function showFinalReveal() {
