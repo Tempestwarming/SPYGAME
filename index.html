@@ -5,39 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Find The Spy</title>
     <style>
-        :root {
-            --red-glow: rgba(255, 0, 0, 0.7);
-            --dark-bg: #000000;
-        }
-
-        body, html {
-            margin: 0; padding: 0; height: 100%;
-            font-family: 'Courier New', Courier, monospace;
-            background-color: var(--dark-bg);
-            color: white;
-            overflow: hidden;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            width: 100vw;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            text-align: center;
-            position: absolute;
-            top: 0; left: 0;
-        }
-
+        :root { --red-glow: rgba(255, 0, 0, 0.7); --dark-bg: #000000; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Courier New', Courier, monospace; background-color: var(--dark-bg); color: white; overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-size: cover; background-position: center; background-repeat: no-repeat; text-align: center; position: absolute; top: 0; left: 0; }
         .active { display: flex; }
-
-        /* Background Graphics - Files must be in main folder */
+        
+        /* BACKGROUNDS - Assuming files are in the main area */
         #menu-screen { background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('main_spy.png'); }
         #setup-screen { background: radial-gradient(circle at center, #300000 0%, #000 100%); }
         #reveal-screen { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('pointing_shadows.png'); }
@@ -45,56 +18,16 @@
 
         h1 { font-size: 2.5rem; text-shadow: 0 0 15px red; margin-bottom: 30px; text-transform: uppercase; }
         h2 { font-size: 2rem; margin-bottom: 10px; color: #ff4d4d; }
-
-        .btn {
-            background: rgba(40, 40, 40, 0.9);
-            border: 1px solid #555;
-            color: white;
-            padding: 15px 30px;
-            margin: 10px;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            width: 280px;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-family: inherit;
-        }
-
+        .btn { background: rgba(40, 40, 40, 0.9); border: 1px solid #555; color: white; padding: 15px 30px; margin: 10px; border-radius: 8px; font-size: 1.1rem; width: 280px; cursor: pointer; text-transform: uppercase; font-family: inherit; }
         .btn:active { background: #600; border-color: red; box-shadow: 0 0 10px red; }
-
         .setup-group { width: 85%; margin: 10px 0; text-align: left; }
         .setup-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9rem; }
         input[type=range] { width: 100%; height: 10px; border-radius: 5px; accent-color: red; cursor: pointer; }
-
-        #swipe-zone {
-            width: 100%; height: 50vh;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            cursor: pointer;
-        }
-
-        #secret-box {
-            font-size: 2.2rem;
-            background: rgba(255, 0, 0, 0.3);
-            padding: 30px;
-            border-radius: 10px;
-            border: 2px solid red;
-            opacity: 0;
-            transition: transform 0.3s ease-out, opacity 0.3s;
-            transform: translateY(50px);
-            pointer-events: none;
-        }
-
+        #swipe-zone { width: 100%; height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        #secret-box { font-size: 2.2rem; background: rgba(255, 0, 0, 0.3); padding: 30px; border-radius: 10px; border: 2px solid red; opacity: 0; transition: transform 0.3s ease-out, opacity 0.3s; transform: translateY(50px); pointer-events: none; }
         .swiped-up #secret-box { opacity: 1; transform: translateY(0); }
         .swiped-up #swipe-prompt { opacity: 0; }
-
         #timer-display { font-size: 6rem; font-weight: bold; margin-bottom: 20px; text-shadow: 0 0 20px red; }
-
-        #how-to-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 100; padding: 40px; box-sizing: border-box;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
@@ -106,16 +39,7 @@
     <div id="menu-screen" class="screen active">
         <h1>FIND THE SPY</h1>
         <button class="btn" onclick="showScreen('setup-screen')">NEW GAME</button>
-        <button class="btn" onclick="toggleModal(true)">HOW TO PLAY</button>
         <button class="btn" id="sound-btn" onclick="toggleSound()">SOUND: ON</button>
-    </div>
-
-    <div id="how-to-modal" onclick="toggleModal(false)">
-        <h2>RULES</h2>
-        <p>1. Pass the phone. Swipe up to see your role.</p>
-        <p>2. The Spy doesn't know the word.</p>
-        <p>3. Ask questions to find the Spy.</p>
-        <p style="color:red;">TAP TO CLOSE</p>
     </div>
 
     <div id="setup-screen" class="screen">
@@ -144,9 +68,7 @@
 
     <div id="reveal-screen" class="screen">
         <h2 id="player-title">PLAYER 1</h2>
-        <div id="swipe-zone" 
-             onmousedown="handleSwipe(true)" onmouseup="handleSwipe(false)"
-             ontouchstart="handleSwipe(true)" ontouchend="handleSwipe(false)">
+        <div id="swipe-zone" onmousedown="handleSwipe(true)" onmouseup="handleSwipe(false)" ontouchstart="handleSwipe(true)" ontouchend="handleSwipe(false)">
             <p id="swipe-prompt">↑ HOLD TO REVEAL ↑</p>
             <div id="secret-box">WORD</div>
         </div>
@@ -161,16 +83,7 @@
     </div>
 
     <script>
-        let gameState = {
-            players: 0,
-            spies: [],
-            currentPlayer: 1,
-            secretWord: "",
-            duration: 0,
-            sound: true,
-            timer: null
-        };
-
+        let gameState = { players: 0, spies: [], currentPlayer: 1, secretWord: "", duration: 0, sound: true, timer: null };
         const music = document.getElementById('game-music');
 
         function showScreen(id) {
@@ -182,8 +95,6 @@
             document.getElementById(id).innerText = val;
             if(id === 'p-val') document.getElementById('spies').max = val - 1;
         }
-
-        function toggleModal(show) { document.getElementById('how-to-modal').style.display = show ? 'block' : 'none'; }
 
         function toggleSound() {
             gameState.sound = !gameState.sound;
@@ -198,27 +109,26 @@
             gameState.currentPlayer = 1;
             gameState.spies = [];
 
-            // Randomize Spies
             while(gameState.spies.length < spyCount) {
                 let r = Math.floor(Math.random() * gameState.players) + 1;
                 if(!gameState.spies.includes(r)) gameState.spies.push(r);
             }
 
-            // Load CSV and FIX words (remove hidden characters)
             const csvFile = document.getElementById('category').value;
             try {
+                // FETCHING DIRECTLY FROM MAIN AREA (no "topics/" folder)
                 const response = await fetch(csvFile + '?t=' + Date.now());
+                if (!response.ok) throw new Error("404");
                 const data = await response.text();
-                // This regex splits correctly regardless of Windows or Mac line endings
                 const lines = data.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
                 gameState.secretWord = lines[Math.floor(Math.random() * lines.length)];
             } catch (err) {
-                gameState.secretWord = "OFFICE"; 
+                console.error(err);
+                gameState.secretWord = "ERROR: FILE NOT FOUND"; 
             }
 
-            // Music Force Play (triggered by button click)
             if(gameState.sound) {
-                music.volume = 0.5;
+                music.volume = 0.4;
                 music.currentTime = 0;
                 music.play().catch(e => console.log("Audio blocked"));
             }
